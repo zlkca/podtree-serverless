@@ -1,0 +1,192 @@
+# "org" ensures this Service is used with the correct Serverless Framework Access Key.
+org: likezhang
+# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
+app: podtree-serverless
+# "service" is the name of this project. This will also be added to your AWS resource names.
+service: podtree-serverless
+
+stages:
+  default:
+    params:
+      userTableName: "users-${sls:stage}"
+      goalTableName: "goals-${sls:stage}"
+      taskTableName: "tasks-${sls:stage}"
+
+provider:
+  name: aws
+  runtime: nodejs20.x
+  iam:
+    role:
+      name: podtree-serverless-lambda-role
+      statements:
+        - Effect: Allow
+          Action:
+            - lambda:InvokeFunction
+            - lambda:InvokeAsync
+          Resource: "*"
+          
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
+        
+        - Effect: Allow
+          Action:
+            - dynamodb:Query
+            - dynamodb:Scan
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+          Resource:
+            - Fn::GetAtt: [UserTable, Arn]
+            - Fn::GetAtt: [GoalTable, Arn]
+            - Fn::GetAtt: [TaskTable, Arn]
+
+  # environment:
+  #   USERS_TABLE: ${param:userTableName}
+  logs:
+    restApi: true
+
+functions:
+  api:
+    handler: src/api/index.handler
+    events:
+      - http:
+          path: login
+          method: post
+          cors: true
+      - http:
+          path: signup
+          method: post
+          cors: true
+      - http:
+          path: goals
+          method: post
+          cors: true
+      - http:
+          path: goals
+          method: get
+          cors: true
+      - http:
+          path: goals
+          method: patch
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: goals
+          method: delete
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: tasks
+          method: post
+          cors: true
+      - http:
+          path: tasks
+          method: get
+          cors: true
+      - http:
+          path: tasks
+          method: patch
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+      - http:
+          path: tasks
+          method: delete
+          cors: true
+          request:
+            parameters:
+              paths:
+                id: true
+
+  websocket:
+    handler: src/lambdas/websocket.handler
+    events:
+      - websocket:
+          route: $connect
+      - websocket:
+          route: $default
+      - websocket:
+          route: $disconnect
+
+  # RequestAuthorizer:
+  #   handler: src/authorization/index.handler
+  #   name: RequestAuthorizer
+  #   memorySize: 256
+  #   timeout: 60
+  
+  # HandleGoals:
+  #   handler: src/lambdas/handleGoals.handler
+  #   name: HandleGoals
+  #   memorySize: 256
+  #   # timeout: 180
+  #   events:
+  #     - http:
+  #         path: /v1/goals
+  #         method: GET
+  #         authorizer:
+  #           name: RequestAuthorizer
+  #           type: request
+  #           identitySource: method.request.header.Authorization
+
+resources:
+  Resources:
+    UserTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${param:userTableName}
+
+    GoalTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: N
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: createdAt
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${param:goalTableName}
+
+    TaskTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: createdAt
+            AttributeType: N
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: createdAt
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${param:taskTableName}
+    # ApiGatewayRestApi:
+    #   Type: AWS:ApiGateway:RestApi
+    #   Properties:
+    #     Name: dev-podtree-serverless-api
