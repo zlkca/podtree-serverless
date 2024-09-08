@@ -11,7 +11,8 @@ stages:
       userTableName: "users-${sls:stage}"
       goalTableName: "goals-${sls:stage}"
       taskTableName: "tasks-${sls:stage}"
-
+      categoryTableName: "categories-${sls:stage}"
+      recurringTaskTableName: "recurring-tasks-${sls:stage}"
 provider:
   name: aws
   runtime: nodejs20.x
@@ -35,15 +36,18 @@ provider:
         - Effect: Allow
           Action:
             - dynamodb:Query
-            - dynamodb:Scan
             - dynamodb:GetItem
             - dynamodb:PutItem
             - dynamodb:UpdateItem
             - dynamodb:DeleteItem
+            - dynamodb:BatchWriteItem
           Resource:
             - Fn::GetAtt: [UserTable, Arn]
+            - Fn::GetAtt: [CategoryTable, Arn]
             - Fn::GetAtt: [GoalTable, Arn]
             - Fn::GetAtt: [TaskTable, Arn]
+            - Fn::GetAtt: [RecurringTaskTable, Arn]
+            
 
   # environment:
   #   USERS_TABLE: ${param:userTableName}
@@ -55,6 +59,10 @@ functions:
     handler: src/api/index.handler
     events:
       - http:
+          path: google-userinfo
+          method: get
+          cors: true
+      - http:
           path: login
           method: post
           cors: true
@@ -65,23 +73,67 @@ functions:
       - http:
           path: goals
           method: post
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
       - http:
           path: goals
           method: get
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
       - http:
-          path: goals
+          path: goals/{id}
           method: patch
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
           request:
             parameters:
               paths:
                 id: true
       - http:
-          path: goals
+          path: goals/{id}
           method: delete
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
           request:
             parameters:
               paths:
@@ -89,27 +141,100 @@ functions:
       - http:
           path: tasks
           method: post
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
       - http:
           path: tasks
           method: get
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
       - http:
-          path: tasks
+          path: analyse/tasks
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
+      - http:
+          path: tasks/{id}
           method: patch
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
           request:
             parameters:
               paths:
                 id: true
       - http:
-          path: tasks
+          path: tasks/{id}
           method: delete
-          cors: true
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
           request:
             parameters:
               paths:
                 id: true
+      - http:
+          path: categories
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
 
   websocket:
     handler: src/lambdas/websocket.handler
@@ -120,7 +245,11 @@ functions:
           route: $default
       - websocket:
           route: $disconnect
-
+  handleSNS:
+    handler: src/lambdas/handleSNS.handler
+    events:
+      - sns:
+          arn: arn:aws:sns:us-east-1:765588567347:CreditCheckTaskTokenTopic
   # RequestAuthorizer:
   #   handler: src/authorization/index.handler
   #   name: RequestAuthorizer
@@ -154,7 +283,21 @@ resources:
             KeyType: HASH
         BillingMode: PAY_PER_REQUEST
         TableName: ${param:userTableName}
-
+    CategoryTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: name
+            AttributeType: S
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: name
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${param:categoryTableName}
     GoalTable:
       Type: AWS::DynamoDB::Table
       Properties:
@@ -170,22 +313,36 @@ resources:
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: ${param:goalTableName}
-
     TaskTable:
       Type: AWS::DynamoDB::Table
       Properties:
         AttributeDefinitions:
           - AttributeName: userId
             AttributeType: S
-          - AttributeName: createdAt
+          - AttributeName: startAt
             AttributeType: N
         KeySchema:
           - AttributeName: userId
             KeyType: HASH
-          - AttributeName: createdAt
+          - AttributeName: startAt
             KeyType: RANGE
         BillingMode: PAY_PER_REQUEST
         TableName: ${param:taskTableName}
+    RecurringTaskTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: userId
+            AttributeType: S
+          - AttributeName: startAt
+            AttributeType: N
+        KeySchema:
+          - AttributeName: userId
+            KeyType: HASH
+          - AttributeName: startAt
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${param:recurringTaskTableName}
     # ApiGatewayRestApi:
     #   Type: AWS:ApiGateway:RestApi
     #   Properties:
