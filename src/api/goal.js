@@ -1,14 +1,7 @@
-const {
-  DynamoDBClient,
-  PutItemCommand,
-  QueryCommand,
-  UpdateItemCommand,
-  DeleteItemCommand,
-  BatchWriteItemCommand,
-} = require("@aws-sdk/client-dynamodb");
+import { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand, DeleteItemCommand, BatchWriteItemCommand } from "@aws-sdk/client-dynamodb";
 
-const { unmarshall, marshall } = require("@aws-sdk/util-dynamodb");
-const { DynamoDBCfg } = require("../const");
+import { unmarshall, marshall } from "@aws-sdk/util-dynamodb";
+import { DynamoDBCfg } from "../const.js";
 
 const tableName = "goals-dev";
 
@@ -25,16 +18,6 @@ async function batchSaveGoals(goals) {
       [tableName]: goals.map((goal) => ({
         PutRequest: {
           Item: marshall(goal),
-          // Item: {
-          //   userId: { S: userId },
-          //   name: { S: goal.name },
-          //   type: { S: goal.type },
-          //   categories: { S: goal.categories },
-          //   notes: { S: goal.notes ?? "" },
-          //   startAt: { N: createdAt },
-          //   endAt: { N: createdAt },
-          //   createdAt: { N: createdAt },
-          // },
         },
       })),
     },
@@ -48,7 +31,7 @@ async function batchSaveGoals(goals) {
   }
 }
 
-function setGoalRoutes(app) {
+export function setGoalRoutes(app) {
   app.post("/goals", async (req, res) => {
     // console.log('received event:', JSON.stringify(req, null, 2))
     console.log({ post_goals: req.body });
@@ -57,18 +40,21 @@ function setGoalRoutes(app) {
     const body = req.body;
     const client = new DynamoDBClient(DynamoDBCfg);
     if (userId) {
-      const createdAt = body.createdAt ? body.createdAt.toString() : "";
+      const createdAt = new Date().getTime();
+      const item = {
+        userId,
+        name: body.name, 
+        categories: body.categories.map(category => ({name: category, status: 'active'})),
+        type: 'custom',
+        status: 'active',
+        notes: body.notes,
+        startAt: body.startAt,
+        endAt: body.endAt,
+        createdAt
+      };
       const params = {
         TableName: tableName,
-        Item: {
-          userId: { S: userId }, // The key must be a string for the local DynamoDB
-          name: { S: body.name },
-          category: { S: body.category ?? "" },
-          notes: { S: body.notes ?? "" },
-          startAt: { N: createdAt },
-          endAt: { N: createdAt },
-          createdAt: { N: createdAt },
-        },
+        Item: marshall(item),
       };
 
       try {
@@ -93,7 +79,6 @@ function setGoalRoutes(app) {
   });
 
   app.get("/goals", async (req, res) => {
-    console.log({ get_goals: req.body });
     console.log({ userId: req.get("UserId") });
     const client = new DynamoDBClient(DynamoDBCfg);
     const userId = req.get("UserId");
@@ -130,7 +115,7 @@ function setGoalRoutes(app) {
 
   app.patch("/goals/:id", async (req, res) => {
     const id = req.params.id;
-    const createdAt = id.split("-")[1];
+    const startAt = id.split("-")[1];
     const userId = req.get("UserId");
     const body = req.body;
     console.log({ body: req.body });
@@ -141,17 +126,19 @@ function setGoalRoutes(app) {
         TableName: tableName,
         Key: {
           userId: { S: userId }, // Partition key
-          createdAt: { N: createdAt }, // Sort key
+          startAt: { N: startAt.toString() }, // Sort key
         },
         UpdateExpression:
-          "SET #nm = :name, notes = :notes, category = :category",
+          "SET #nm = :name, notes = :notes,  #sts = :status", // categories = :categories,
         ExpressionAttributeValues: {
           ":name": { S: body.name },
-          ":category": { S: body.category ?? "" },
+          // ":categories": { L: body.categories.map(category => marshall(category)) },
           ":notes": { S: body.notes ?? "" },
+          ":status": { S: body.status ?? "active" },
         },
         ExpressionAttributeNames: {
           "#nm": "name", // Map '#nm' to the actual attribute name 'name'
+          "#sts": "status",
         },
         ReturnValues: "UPDATED_NEW",
       };
@@ -172,7 +159,7 @@ function setGoalRoutes(app) {
   app.delete("/goals/:id", async (req, res) => {
     const client = new DynamoDBClient(DynamoDBCfg);
     const id = req.params.id;
-    const createdAt = id.split("-")[1];
+    const startAt = id.split("-")[1];
     const userId = req.get("UserId");
 
     if (userId) {
@@ -180,7 +167,7 @@ function setGoalRoutes(app) {
         TableName: tableName,
         Key: {
           userId: { S: userId }, // Partition key
-          createdAt: { N: createdAt }, // Sort key
+          startAt: { N: startAt }, // Sort key
         },
       };
 
@@ -192,7 +179,7 @@ function setGoalRoutes(app) {
     }
   });
 }
-async function generateGoals(userId){
+export async function generateGoals(userId){
   const createdAt = new Date().getTime();
       const goals = [
         {
@@ -205,7 +192,7 @@ async function generateGoals(userId){
           ], 
           type: 'template',
           status: 'active',
-          notes: 'Focus on daily job responsibilities, improving skills, and aligning work with long-term financial and personal goals.',
+          notes: 'Focus on improving skills, aligning work with long-term financial goals.',
           endAt: createdAt,
           createdAt
         },
@@ -213,7 +200,7 @@ async function generateGoals(userId){
           userId,
           name: 'Build a side project', 
           categories: [
-            {name: "Weath", status: 'active', percentage: 25},
+            {name: "Wealth", status: 'active', percentage: 25},
             {name: "Growth", status: 'active', percentage: 25},
             {name: "Purpose", status: 'active', percentage: 25},
             {name: "Adventure", status: 'active', percentage: 25}
@@ -368,7 +355,7 @@ async function generateGoals(userId){
           userId,
           name: 'Write a personal memoir', 
           categories: [
-            {name: "Self-Actualization", status: 'active', percentage: 33},
+            {name: "Peace", status: 'active', percentage: 33},
             {name: "Wisdom", status: 'active', percentage: 33},
             {name: "Purpose", status: 'active', percentage: 33}
           ], 
@@ -384,17 +371,17 @@ async function generateGoals(userId){
           categories: [
             {name: "Purpose", status: 'active', percentage: 33},
             {name: "Growth", status: 'active', percentage: 33},
-            {name: "Self-Actualization", status: 'active', percentage: 33}
+            {name: "Peace", status: 'active', percentage: 33}
           ], 
           type: 'template',
           status: 'active',
-          notes: 'Set life goals, create actionable plans, and track progress regularly to ensure alignment with personal growth and purpose.',
+          notes: 'Set life goals, create actionable plans, and track progress regularly.',
           endAt: createdAt,
           createdAt
         },
         {
           userId,
-          name: 'Home improvment (Gardening, Cleaning and Maintainance)', 
+          name: 'Home improvment', 
           categories: [
             {name: "Peace", status: 'active', percentage: 33},
             {name: "Health", status: 'active', percentage: 33},
@@ -402,7 +389,7 @@ async function generateGoals(userId){
           ], 
           type: 'template',
           status: 'active',
-          notes: 'Maintain the home for relaxation, physical activity, and improving the environment.',
+          notes: 'Maintain the home for relaxation and improving the environment.',
           endAt: createdAt,
           createdAt
         }
@@ -418,7 +405,3 @@ async function generateGoals(userId){
       await batchSaveGoals(goalsWithStartAt);
 }
 
-module.exports = {
-  generateGoals,
-  setGoalRoutes,
-};

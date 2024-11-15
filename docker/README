@@ -1,0 +1,5 @@
+docker run -d -p 8000:8000 -v /path/to/dynamodb_local_db:/home/dynamodblocal/db amazon/dynamodb-local
+aws dynamodb list-tables --endpoint-url http://localhost:8000
+docker run -d -p 8000:8000 amazon/dynamodb-local
+
+docker run -p 8000:8000 -d amazon/dynamodb-local -jar DynamoDBLocal.jar -sharedDb -dbPath .

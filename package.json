@@ -1,7 +1,8 @@
 {
   "name": "podtree-serverless",
-  "version": "1.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "<!-- title: 'Serverless Framework Node Express API service backed by DynamoDB on AWS' description: 'This template demonstrates how to develop and deploy a simple Node Express API service backed by DynamoDB running on AWS Lambda using the Serverless Framework.' layout: Doc framework: v4 platform: AWS language: nodeJS priority: 1 authorLink: 'https://github.com/serverless' authorName: 'Serverless, Inc.' authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4' -->",
+  "type": "module",
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.623.0",
     "@aws-sdk/lib-dynamodb": "^3.585.0",
@@ -13,7 +14,62 @@
   },
   "scripts": {
     "start": "node src/api/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "lint": "eslint src/js"
-  }
+    "lint": "eslint src/*/*.js",
+    "lint:fix": "eslint src/*/*.js --fix",
+    "test": "mocha test/**/*.spec.js --verbose",
+    "test:coverage": "nyc mocha test/**/*.spec.js --experimental-modules --verbose"
+  },
+  "nyc": {
+    "extends": "@istanbuljs/nyc-config-babel",
+    "all": true,
+    "check-coverage": true,
+    "reporter": [
+      "text",
+      "lcov"
+    ],
+    "include": [
+      "src/*.js",
+      "src/*/*.js"
+    ],
+    "exclude": [
+      "test/*.js",
+      "test/*/*.js"
+    ]
+  },
+  "devDependencies": {
+    "@babel/core": "^7.25.7",
+    "@babel/preset-env": "^7.25.7",
+    "@babel/register": "^7.25.7",
+    "@eslint/js": "^9.12.0",
+    "@istanbuljs/nyc-config-babel": "^3.0.0",
+    "chai": "^5.1.1",
+    "eslint": "^9.12.0",
+    "globals": "^15.10.0",
+    "mocha": "^10.7.3",
+    "nyc": "^17.1.0"
+  },
+  "main": "dist/index.cjs",
+  "exports": {
+    "import": "./src/index.js",
+    "require": "./dist/index.cjs"
+  },
+  "directories": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zlkca/podtree-server.git"
+  },
+  "keywords": [
+    "podtree",
+    "preschool",
+    "daycare",
+    "server"
+  ],
+  "author": "zlk",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/zlkca/podtree-server/issues"
+  },
+  "homepage": "https://github.com/zlkca/podtree-server#readme"
 }

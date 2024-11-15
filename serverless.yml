@@ -1,9 +1,9 @@
 # "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: likezhang
 # "app" enables Serverless Framework Dashboard features and sharing them with other Services.
-app: podtree-serverless
+app: goalsp-serverless
 # "service" is the name of this project. This will also be added to your AWS resource names.
-service: podtree-serverless
+service: goalsp-serverless
 
 stages:
   default:
@@ -18,7 +18,7 @@ provider:
   runtime: nodejs20.x
   iam:
     role:
-      name: podtree-serverless-lambda-role
+      name: goalsp-serverless-lambda-role
       statements:
         - Effect: Allow
           Action:
@@ -59,6 +59,36 @@ functions:
     handler: src/api/index.handler
     events:
       - http:
+          path: users/{id}
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
+      - http:
+          path: users/{id}
+          method: patch
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
+      - http:
           path: google-userinfo
           method: get
           cors: true
@@ -68,6 +98,10 @@ functions:
           cors: true
       - http:
           path: signup
+          method: post
+          cors: true
+      - http:
+          path: userinfo
           method: post
           cors: true
       - http:
@@ -152,6 +186,21 @@ functions:
               - X-Amz-User-Agent
               - X-Amzn-Trace-Id
               - UserId
+      - http:
+          path: taskMap
+          method: get
+          cors:
+            origin: '*'
+            headers:
+              - Content-Type
+              - X-Amz-Date
+              - Authorization
+              - X-Api-Key
+              - X-Amz-Security-Token
+              - X-Amz-User-Agent
+              - X-Amzn-Trace-Id
+              - UserId
+            allowCredentials: false
       - http:
           path: tasks
           method: get
@@ -236,20 +285,20 @@ functions:
               - UserId
             allowCredentials: false
 
-  websocket:
-    handler: src/lambdas/websocket.handler
-    events:
-      - websocket:
-          route: $connect
-      - websocket:
-          route: $default
-      - websocket:
-          route: $disconnect
-  handleSNS:
-    handler: src/lambdas/handleSNS.handler
-    events:
-      - sns:
-          arn: arn:aws:sns:us-east-1:765588567347:CreditCheckTaskTokenTopic
+  # websocket:
+  #   handler: src/lambdas/websocket.handler
+  #   events:
+  #     - websocket:
+  #         route: $connect
+  #     - websocket:
+  #         route: $default
+  #     - websocket:
+  #         route: $disconnect
+  # handleSNS:
+  #   handler: src/lambdas/handleSNS.handler
+  #   events:
+  #     - sns:
+  #         arn: arn:aws:sns:us-east-1:765588567347:CreditCheckTaskTokenTopic
   # RequestAuthorizer:
   #   handler: src/authorization/index.handler
   #   name: RequestAuthorizer

@@ -1,6 +1,6 @@
-const http = require('https');
+import http from "https";
 
-function postRequest(hostname, path, data, options) {
+export function postRequest(hostname, path, data, options) {
     const opts = {
         hostname,
         port: 443,
@@ -60,7 +60,7 @@ function postRequest(hostname, path, data, options) {
 // }
 
 // path eg. /autocomplete
-function getRequest(url, options) {
+export function getRequest(url, options) {
     const opts =  {
         headers: {
             'content-type': 'application/json',
@@ -165,7 +165,3 @@ function getRequest(url, options) {
 //         return [];
 //     }
 // }
-module.exports = {
-    postRequest,
-    getRequest
-};

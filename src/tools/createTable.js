@@ -1,4 +1,4 @@
-const { DynamoDBClient, CreateTableCommand } = require('@aws-sdk/client-dynamodb');
+import { DynamoDBClient, CreateTableCommand } from "@aws-sdk/client-dynamodb";
 
 // Configure the AWS SDK to use DynamoDB Local
 const client = new DynamoDBClient({

@@ -1,22 +1,17 @@
-const {
-  DynamoDBClient,
-  PutItemCommand,
-  QueryCommand,
-  UpdateItemCommand,
-  DeleteItemCommand,
-  BatchWriteItemCommand,
-} = require("@aws-sdk/client-dynamodb");
-const { unmarshall } = require("@aws-sdk/util-dynamodb");
-const { DynamoDBCfg } = require("../const");
+import { DynamoDBClient, PutItemCommand, QueryCommand, BatchWriteItemCommand } from "@aws-sdk/client-dynamodb";
+import { unmarshall } from "@aws-sdk/util-dynamodb";
+import { DynamoDBCfg } from "../const.js";
 
 const tableName = "categories-dev";
 
-function setCategoryRoutes(app) {
+export function setCategoryRoutes(app) {
   app.post("/categories", async (req, res) => {
     res.status(200).json({ message: "categories" });
   });
   app.get("/categories", async (req, res) => {
+    console.log(`get /categories headers: ${JSON.stringify(req.headers)}`);
     const userId = req.get("UserId");
+    console.log(`userId: ${userId}`);
     if (userId) {
       try {
         const data = await findCategories(userId);
@@ -37,7 +32,7 @@ function setCategoryRoutes(app) {
   });
 }
 
-async function findCategories(userId) {
+export async function findCategories(userId) {
   const client = new DynamoDBClient(DynamoDBCfg);
   if (userId) {
     const params = {
@@ -60,7 +55,7 @@ async function findCategories(userId) {
   }
 }
 
-async function saveCategory(categoryId, body) {
+export async function saveCategory(categoryId, body) {
   const client = new DynamoDBClient(DynamoDBCfg);
   if (categoryId) {
     const createdAt = new Date().getTime().toString();
@@ -111,7 +106,7 @@ async function batchSaveCategories(userId, categories) {
   }
 }
 
-async function generateCategories(userId) {
+export async function generateCategories(userId) {
   await batchSaveCategories(userId, [
     {
       name: "Health",
@@ -183,19 +178,6 @@ async function generateCategories(userId) {
       notes:
         "Purpose is the driving force behind your success. It helps you set clear goals, make choices, and live a life aligned with your values and aspirations.",
     },
-    {
-      name: "Self Actualization",
-      type: "template",
-      status: "active",
-      notes:
-        "Self-actualization is the process of becoming who you want to be. It involves making decisions, changing your life, and becoming the best version of yourself.",
-    },
   ]);
 }
 
-module.exports = {
-  findCategories,
-  saveCategory,
-  setCategoryRoutes,
-  generateCategories,
-};

@@ -8,7 +8,7 @@ const client = new DynamoDBClient({
 
 const tableName = 'goals-dev'; // Replace with your table name
 const userId = '100471422368927770526'; // Replace with the partition key value you want to query
-const createdAtValue = 1622542800; // Replace with the sort key value to query (if applicable)
+// const createdAtValue = 1622542800; // Replace with the sort key value to query (if applicable)
 
 const queryTable = async () => {
   try {
@@ -25,7 +25,7 @@ const queryTable = async () => {
       }
     });
 
-    const result = await client.send(queryCommand);
+    await client.send(queryCommand);
   } catch (err) {
     console.error('Error querying table:', err);
   }
