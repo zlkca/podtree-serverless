@@ -1,5 +1,5 @@
 import express from "express";
-import serverless from "serverless-http";
+// import serverless from "serverless-http";
 import bodyParser from "body-parser";
 import cors from "cors";
 import { setUserRoutes } from "./user.js";
@@ -18,12 +18,6 @@ app.use(cors());
 
 app.use(express.json());
 
-app.post("/login", async (req, res) => {
-  res.status(400).json({ message: "login" });
-});
-app.post("/signup", async (req, res) => {
-  res.status(200).json({ message: "signup" });
-});
 
 setAuthRoutes(app);
 setUserRoutes(app);
@@ -31,8 +25,9 @@ setCategoryRoutes(app);
 setGoalRoutes(app);
 setTaskRoutes(app);
 
-export const handler = serverless(app);
 
-// app.listen(5000, () => {
-//   console.log(`Api server listening!`);
-// });
+app.listen(5000, () => {
+  console.log(`Api server listening!`);
+});
+
+// export const handler = serverless(app);
