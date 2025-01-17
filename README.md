@@ -1,90 +1,139 @@
-<!--
-title: 'Serverless Framework Node Express API service backed by DynamoDB on AWS'
-description: 'This template demonstrates how to develop and deploy a simple Node Express API service backed by DynamoDB running on AWS Lambda using the Serverless Framework.'
-layout: Doc
-framework: v4
-platform: AWS
-language: nodeJS
-priority: 1
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, Inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+## Deploy
+```
+npm prune --production
+npm i serverless-webpack --save-dev
+serverless deploy
+```
+## Create Layer
+```
+mkdir mongodb-layer
+cd mongodb-layer
+mkdir -p nodejs
+cd nodejs
+npm init -y
+npm install mongodb --save
+cd ..
+zip -r mongodb-layer.zip nodejs
+```
+## Debug
 
-# Serverless Framework Node Express API on AWS
+### Debug with https
+```
+openssl req -newkey rsa:2048 -nodes -keyout server.key -x509 -days 365 -out server.crt
+```
+### Debug in VS Code:
+make sure you have global serverless installed
+Add Debug Configuration: Create a .vscode/launch.json file:
+```
+{
+   "version": "0.2.0",
+   "configurations": [
+       {
+           "type": "node",
+           "request": "launch",
+           "name": "Debug Serverless Offline",
+           "runtimeExecutable": "serverless",
+           "args": ["offline", "--stage", "dev"],
+           "cwd": "${workspaceFolder}",
+           "skipFiles": ["<node_internals>/**"],
+           "sourceMaps": true
+       }
+   ]
+}
+```
+Open VS Code Debug panel.
+Select Debug Serverless Offline and click "Start Debugging."
 
-This template demonstrates how to develop and deploy a simple Node Express API service, backed by DynamoDB table, running on AWS Lambda using the Serverless Framework.
 
-This template configures a single function, `api`, which is responsible for handling all incoming requests using the `httpApi` event. To learn more about `httpApi` event configuration options, please refer to [httpApi event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). As the event is configured in a way to accept all incoming requests, the Express.js framework is responsible for routing and handling requests internally. This implementation uses the `serverless-http` package to transform the incoming event request payloads to payloads compatible with Express.js. To learn more about `serverless-http`, please refer to the [serverless-http README](https://github.com/dougmoscrop/serverless-http).
+### Debug in console
+Run serverless-offline in Debug Mode:
 
-Additionally, it also handles provisioning of a DynamoDB database that is used for storing data about users. The Express.js application exposes two endpoints, `POST /users` and `GET /user/:userId`, which create and retrieve a user record.
+```
+node --inspect-brk ./node_modules/.bin/serverless offline --stage dev
+```
+Attach a Debugger:
 
+Open Chrome and navigate to chrome://inspect.
+Select your debugging session to start debugging.
+
+### Run single function
+```
+serverless invoke local --function hello --stage dev --data '{"key": "value"}'
+```
+Input Event: Pass input data (--data) as JSON to simulate an AWS event.
+Environment Variables: Automatically loaded from .env or serverless.yml.
+
+### Simulate API Gateway Locally
+After running serverless offline, you can access your endpoints in a local API Gateway simulator.
+```
+serverless offline --stage dev
+```
+Open a browser to check:
+http://localhost:3000/dev/hello
+
+
+## Test
+
+Post on /login
+```
+curl -X POST localhost:5001/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "exampleUser",
+    "password": "examplePassword"
+  }'
+```
 ## Usage
 
 ### Deployment
 
-Install dependencies with:
+In order to deploy the example, you need to run the following command:
 
 ```
-npm install
-```
-
-and then deploy with:
-
-```
-serverless deploy
+$ serverless deploy
 ```
 
 After running deploy, you should see output similar to:
 
-```
-Deploying "aws-node-express-dynamodb-api" to stage "dev" (us-east-1)
+```bash
+Deploying aws-node-project to stage dev (us-east-1)
 
-✔ Service deployed to stack aws-node-express-dynamodb-api-dev (109s)
+✔ Service deployed to stack aws-node-project-dev (112s)
 
-endpoint: ANY - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com
 functions:
-  api: aws-node-express-dynamodb-api-dev-api (3.8 MB)
+  hello: aws-node-project-dev-hello (1.5 kB)
 ```
-
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [`httpApi` event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api/). Additionally, in current configuration, the DynamoDB table will be removed when running `serverless remove`. To retain the DynamoDB table even after removal of the stack, add `DeletionPolicy: Retain` to its resource definition.
 
 ### Invocation
 
-After successful deployment, you can create a new user by calling the corresponding endpoint:
+After successful deployment, you can invoke the deployed function by using the following command:
 
-```
-curl --request POST 'https://xxxxxx.execute-api.us-east-1.amazonaws.com/users' --header 'Content-Type: application/json' --data-raw '{"name": "John", "userId": "someUserId"}'
+```bash
+serverless invoke --function hello
 ```
 
-Which should result in the following response:
+Which should result in response similar to the following:
 
 ```json
-{ "userId": "someUserId", "name": "John" }
-```
-
-You can later retrieve the user by `userId` by calling the following endpoint:
-
-```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/users/someUserId
-```
-
-Which should result in the following response:
-
-```json
-{ "userId": "someUserId", "name": "John" }
+{
+    "statusCode": 200,
+    "body": "{\n  \"message\": \"Go Serverless v3.0! Your function executed successfully!\",\n  \"input\": {}\n}"
+}
 ```
 
 ### Local development
 
-The easiest way to develop and test your function is to use the `dev` command:
+You can invoke your function locally by using the following command:
+
+```bash
+serverless invoke local --function hello
+```
+
+Which should result in response similar to the following:
 
 ```
-serverless dev
+{
+    "statusCode": 200,
+    "body": "{\n  \"message\": \"Go Serverless v3.0! Your function executed successfully!\",\n  \"input\": \"\"\n}"
+}
 ```
-
-This will start a local emulator of AWS Lambda and tunnel your requests to and from AWS Lambda, allowing you to interact with your function as if it were running in the cloud.
-
-Now you can invoke the function as before, but this time the function will be executed locally. Now you can develop your function locally, invoke it, and see the results immediately without having to re-deploy.
-
-When you are done developing, don't forget to run `serverless deploy` to deploy the function to the cloud.

@@ -1,24 +1,62 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: likezhang
-# "app" enables Serverless Framework Dashboard features and sharing them with other Services.
-app: goalsp-serverless
-# "service" is the name of this project. This will also be added to your AWS resource names.
-service: goalsp-serverless
+app: podtree-serverless
+service: podtree-serverless
+frameworkVersion: '4'
 
-stages:
-  default:
-    params:
-      userTableName: "users-${sls:stage}"
-      goalTableName: "goals-${sls:stage}"
-      taskTableName: "tasks-${sls:stage}"
-      categoryTableName: "categories-${sls:stage}"
-      recurringTaskTableName: "recurring-tasks-${sls:stage}"
+plugins:
+  - serverless-webpack
+  - serverless-offline
+
+build:
+  esbuild: false
+
+custom:
+  serverless-offline:
+    httpPort: 5001
+    lambdaPort: 5002
+    httpsProtocol: ./certs
+  # stage: ${opt:stage, 'dev'} # Default to 'dev' if no stage is specified
+  # isDev: ${self:custom.stage} == 'dev'
+layers:
+  mongodbLayer:
+    path: mongodb-layer
+    compatibleRuntimes:
+      - nodejs18.x
+      - nodejs20.x
+      - nodejs22.x
+    description: "MongoDB Node.js driver for Lambda"
+# package:
+#   include:
+#     - node_modules/**
+#     - db/**
+#     - utils/**
+#     - models/**
+#     - lambdas/**
+#     - const.js
+package:
+  include:
+    - .env
 provider:
   name: aws
   runtime: nodejs20.x
+  httpApi:
+    cors:
+      allowedOrigins:
+        - 'https://admin.podtree.ca' # Replace with your allowed origin(s)
+      allowedHeaders:
+        - 'Content-Type'
+        - 'Authorization'
+        - 'schoolId'
+        - 'userId'
+      allowedMethods:
+        - GET
+        - POST
+        - PUT
+        - DELETE
+        - OPTIONS
   iam:
     role:
-      name: goalsp-serverless-lambda-role
+      name: podtree-serverless-lambda-role
       statements:
         - Effect: Allow
           Action:
@@ -32,367 +70,152 @@ provider:
             - logs:CreateLogStream
             - logs:PutLogEvents
           Resource: "*"
-        
-        - Effect: Allow
-          Action:
-            - dynamodb:Query
-            - dynamodb:GetItem
-            - dynamodb:PutItem
-            - dynamodb:UpdateItem
-            - dynamodb:DeleteItem
-            - dynamodb:BatchWriteItem
-          Resource:
-            - Fn::GetAtt: [UserTable, Arn]
-            - Fn::GetAtt: [CategoryTable, Arn]
-            - Fn::GetAtt: [GoalTable, Arn]
-            - Fn::GetAtt: [TaskTable, Arn]
-            - Fn::GetAtt: [RecurringTaskTable, Arn]
-            
-
-  # environment:
-  #   USERS_TABLE: ${param:userTableName}
-  logs:
-    restApi: true
-
 functions:
-  api:
-    handler: src/api/index.handler
+  auth:
+    handler: lambdas/auth/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
-      - http:
-          path: users/{id}
-          method: get
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: users/{id}
-          method: patch
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: google-userinfo
-          method: get
-          cors: true
-      - http:
-          path: login
+      - httpApi:
+          path: /login
           method: post
-          cors: true
-      - http:
-          path: signup
+      - httpApi:
+          path: /signup
           method: post
-          cors: true
-      - http:
-          path: userinfo
+      - httpApi:
+          path: /verify-passcode
           method: post
-          cors: true
-      - http:
-          path: goals
+  staff:
+    handler: lambdas/staff/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
+    events:
+      - httpApi:
+          path: /staffs
+          method: get
+      - httpApi:
+          path: /staffs
           method: post
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: goals
+  parent:
+    handler: lambdas/parent/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
+    events:
+      - httpApi:
+          path: /parents
           method: get
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: goals/{id}
-          method: patch
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-          request:
-            parameters:
-              paths:
-                id: true
-      - http:
-          path: goals/{id}
-          method: delete
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-          request:
-            parameters:
-              paths:
-                id: true
-      - http:
-          path: tasks
+      - httpApi:
+          path: /parents
           method: post
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-      - http:
-          path: taskMap
+  student:
+    handler: lambdas/student/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
+    events:
+      - httpApi:
+          path: /students
           method: get
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: tasks
+      - httpApi:
+          path: /students
+          method: post
+  application:
+    handler: lambdas/application/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
+    events:
+      - httpApi:
+          path: /applications
           method: get
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: analyse/tasks
+      - httpApi:
+          path: /applications
+          method: post
+      - httpApi:
+          path: /search/applications
+          method: post
+  program:
+    handler: lambdas/program/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
+    events:
+      - httpApi:
+          path: /programs
           method: get
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-      - http:
-          path: tasks/{id}
-          method: patch
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-          request:
-            parameters:
-              paths:
-                id: true
-      - http:
-          path: tasks/{id}
-          method: delete
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
-          request:
-            parameters:
-              paths:
-                id: true
-      - http:
-          path: categories
+      - httpApi:
+          path: /programs
+          method: post
+      - httpApi:
+          path: /search/programs
+          method: post
+  invoice:
+    handler: lambdas/invoice/index.handler
+    events:
+      - httpApi:
+          path: /invoices
           method: get
-          cors:
-            origin: '*'
-            headers:
-              - Content-Type
-              - X-Amz-Date
-              - Authorization
-              - X-Api-Key
-              - X-Amz-Security-Token
-              - X-Amz-User-Agent
-              - X-Amzn-Trace-Id
-              - UserId
-            allowCredentials: false
+      - httpApi:
+          path: /search/invoices
+          method: post
+  charge:
+    handler: lambdas/charge/index.handler
+    events:
+      - httpApi:
+          path: /charges
+          method: get
+      - httpApi:
+          path: /search/charges
+          method: post
 
-  # websocket:
-  #   handler: src/lambdas/websocket.handler
-  #   events:
-  #     - websocket:
-  #         route: $connect
-  #     - websocket:
-  #         route: $default
-  #     - websocket:
-  #         route: $disconnect
-  # handleSNS:
-  #   handler: src/lambdas/handleSNS.handler
-  #   events:
-  #     - sns:
-  #         arn: arn:aws:sns:us-east-1:765588567347:CreditCheckTaskTokenTopic
-  # RequestAuthorizer:
-  #   handler: src/authorization/index.handler
-  #   name: RequestAuthorizer
-  #   memorySize: 256
-  #   timeout: 60
-  
-  # HandleGoals:
-  #   handler: src/lambdas/handleGoals.handler
-  #   name: HandleGoals
-  #   memorySize: 256
-  #   # timeout: 180
-  #   events:
-  #     - http:
-  #         path: /v1/goals
-  #         method: GET
-  #         authorizer:
-  #           name: RequestAuthorizer
-  #           type: request
-  #           identitySource: method.request.header.Authorization
-
-resources:
-  Resources:
-    UserTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${param:userTableName}
-    CategoryTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: name
-            AttributeType: S
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: name
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${param:categoryTableName}
-    GoalTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: createdAt
-            AttributeType: N
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: createdAt
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${param:goalTableName}
-    TaskTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: startAt
-            AttributeType: N
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: startAt
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${param:taskTableName}
-    RecurringTaskTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: userId
-            AttributeType: S
-          - AttributeName: startAt
-            AttributeType: N
-        KeySchema:
-          - AttributeName: userId
-            KeyType: HASH
-          - AttributeName: startAt
-            KeyType: RANGE
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${param:recurringTaskTableName}
-    # ApiGatewayRestApi:
-    #   Type: AWS:ApiGateway:RestApi
-    #   Properties:
-    #     Name: dev-podtree-serverless-api
+  chargeTemplate:
+    handler: lambdas/chargeTemplate/index.handler
+    events:
+      - httpApi:
+          path: /chargeTemplates
+          method: get
+      - httpApi:
+          path: /search/chargeTemplates
+          method: post
+      - httpApi:
+          path: /chargeTemplates
+          method: post
+  chargePlan:
+    handler: lambdas/chargePlan/index.handler
+    events:
+      - httpApi:
+          path: /chargePlans
+          method: get
+      - httpApi:
+          path: /search/chargePlans
+          method: post
+      - httpApi:
+          path: /chargePlans
+          method: post          
+      - httpApi:
+          path: /batchChargePlans
+          method: post
+  billing:
+    handler: lambdas/billing/index.handler
+    events:
+      - httpApi:
+          path: /billings
+          method: get
+      - httpApi:
+          path: /search/billings
+          method: post 
+  school:
+    handler: lambdas/school/index.handler
+    events:
+      - httpApi:
+          path: /schools/{id}
+          method: get
+      - httpApi:
+          path: /schools
+          method: get
+      - httpApi:
+          path: /search/schools
+          method: post
+      - httpApi:
+          path: /schools
+          method: post
+      - httpApi:
+          path: /schools/{id}
+          method: put
