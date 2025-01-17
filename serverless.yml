@@ -148,6 +148,8 @@ functions:
           method: post
   invoice:
     handler: lambdas/invoice/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
       - httpApi:
           path: /invoices
@@ -157,6 +159,8 @@ functions:
           method: post
   charge:
     handler: lambdas/charge/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
       - httpApi:
           path: /charges
@@ -167,6 +171,8 @@ functions:
 
   chargeTemplate:
     handler: lambdas/chargeTemplate/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
       - httpApi:
           path: /chargeTemplates
@@ -179,6 +185,8 @@ functions:
           method: post
   chargePlan:
     handler: lambdas/chargePlan/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
       - httpApi:
           path: /chargePlans
@@ -194,6 +202,8 @@ functions:
           method: post
   billing:
     handler: lambdas/billing/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
       - httpApi:
           path: /billings
@@ -203,6 +213,8 @@ functions:
           method: post 
   school:
     handler: lambdas/school/index.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
     events:
       - httpApi:
           path: /schools/{id}
