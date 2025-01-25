@@ -1,4 +1,21 @@
-// Helper: Format API Gateway response
+import { InvokeCommand, LambdaClient } from '@aws-sdk/client-lambda';
+
+const lambdaClient = new LambdaClient({region: 'us-east-1'});
+
+export async function invokeFunction(functionName, payload) {
+  try {
+      const input = {
+          FunctionName: functionName, 
+          InvocationType: "Event", 
+          Payload: Buffer.from(JSON.stringify(payload), "utf8"),
+      };
+      const command = new InvokeCommand(input);
+      const res  = await lambdaClient.send(command);
+  } catch (e) {
+    console.log("error triggering function", e);
+  }
+}
+
 export const formatResponse = (statusCode, body) => ({
     statusCode,
     headers: {
@@ -9,3 +26,4 @@ export const formatResponse = (statusCode, body) => ({
     },
     body: JSON.stringify(body),
 });
+

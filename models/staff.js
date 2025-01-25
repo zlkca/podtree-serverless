@@ -1,3 +1,4 @@
+import { cognitoConfirmSignUp } from "../lambdas/auth/cognito-helper.js";
 import BaseModel from "./base.js";
 
 export default class StaffModel extends BaseModel {
@@ -22,4 +23,13 @@ export default class StaffModel extends BaseModel {
             return await super.findInSchool(query, headers);
         }
     }
+
+    async verifySignup(code, userId){
+        const user = await super.findOne({ userId });
+        await cognitoConfirmSignUp(user.email, code);
+        await super.updateById(user._id.toString(), {status: 'verified'});
+      
+        delete user.password;
+        return {...user, status: 'verified'};
+      }
 }

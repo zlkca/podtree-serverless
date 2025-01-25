@@ -27,7 +27,7 @@ export const handler = async (event) => {
         if(path === '/search/schools'){
             const query = JSON.parse(body);
             return await schoolModel.find({...query});
-        }else{
+        }else{ // post '/schools'
             return await schoolModel.create(JSON.parse(body));
         }
 

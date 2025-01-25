@@ -1,7 +1,7 @@
 import {
     SignUpCommand,
     InitiateAuthCommand,
-    // ConfirmSignUpCommand,
+    ConfirmSignUpCommand,
     // AdminDeleteUserCommand,
     // AdminUserGlobalSignOutCommand,
     // GlobalSignOutCommand,
@@ -46,8 +46,10 @@ export async function cognitoSignUp(email, password, school) {
             UserAttributes: [{ Name: "email", Value: email }],
             ClientMetadata: {
                 trigger: "CustomMessage_SignUp",
-                school: school.name
-            }
+                school: school? school.name : '',
+                email, // need check dup
+            },
+            ForceAliasCreation: true,
         });
     
         return await client.send(command);
@@ -71,6 +73,29 @@ export async function cognitoSignUp(email, password, school) {
         }
     }
 }
+
+  export async function cognitoConfirmSignUp(username, confirmationCode) {
+    const command = new ConfirmSignUpCommand({
+      ClientId: clientId,
+      Username: username,
+      ConfirmationCode: confirmationCode,
+    });
+  
+    try {
+      const response = await client.send(command);
+      return {
+        success: true,
+        message: "User confirmed successfully",
+        data: response,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: "Failed to confirm user",
+        error: error.message,
+      };
+    }
+  }
 
 //   export async function createUserByAdmin(username, email, school){
 //     const client = new CognitoIdentityProviderClient({
@@ -123,32 +148,7 @@ export async function cognitoSignUp(email, password, school) {
   
   
   
-//   export async function confirmSignUp(username, confirmationCode) {
-//     const client = new CognitoIdentityProviderClient({
-//       region: CognitoCfg.region,
-//     });
-  
-//     const command = new ConfirmSignUpCommand({
-//       ClientId: CognitoCfg.clientId,
-//       Username: username,
-//       ConfirmationCode: confirmationCode,
-//     });
-  
-//     try {
-//       const response = await client.send(command);
-//       return {
-//         success: true,
-//         message: "User confirmed successfully",
-//         data: response,
-//       };
-//     } catch (error) {
-//       return {
-//         success: false,
-//         message: "Failed to confirm user",
-//         error: error.message,
-//       };
-//     }
-//   }
+
   
 //   export async function resendVerificationCode(username, school) {
 //     const client = new CognitoIdentityProviderClient({

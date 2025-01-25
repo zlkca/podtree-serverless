@@ -23,7 +23,11 @@ export const handler = async (event) => {
         }
 
       case 'POST':
-        return await applicationModel.create(JSON.parse(body));
+        if(path === '/batch-applications'){
+          return await applicationModel.batchCreate(JSON.parse(body));
+        }else{
+          return await applicationModel.create(JSON.parse(body));
+        }
 
       case 'PUT':
         if (pathParameters && pathParameters.id) {

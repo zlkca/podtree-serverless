@@ -83,8 +83,12 @@ functions:
           path: /signup
           method: post
       - httpApi:
-          path: /verify-passcode
-          method: post
+          path: /verifySignup
+          method: get
+  cognito:
+    handler: lambdas/auth/cognito-callback.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
   staff:
     handler: lambdas/staff/index.handler
     layers:
@@ -129,6 +133,9 @@ functions:
       - httpApi:
           path: /applications
           method: post
+      - httpApi:
+            path: /batch-applications
+            method: post
       - httpApi:
           path: /search/applications
           method: post
