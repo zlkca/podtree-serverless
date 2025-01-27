@@ -1,9 +1,10 @@
-import {RRule} from 'rrule';
+import { RRule } from 'rrule';
+import { getMonthRangeByTimestamp } from './index';
 
 export function generateOccurrence(freq, recurringMonthday, startTimestamp, endTimestamp){
-
+    console.log('generateOccurence:', {freq, recurringMonthday, startTimestamp, endTimestamp})
     const byMonthday = recurringMonthday ? (recurringMonthday == "last" ? -1 : recurringMonthday) : 1;
-
+    console.log({byMonthday})
     if(freq === "daily"){
         const rule = new RRule({
             freq: RRule.DAILY,
@@ -63,16 +64,14 @@ export function generateOccurrence(freq, recurringMonthday, startTimestamp, endT
     } 
 }
 
-export function getNextInvoiceDate(currentDate, recurringMonthDay, frequency = 'monthly') {
-    console.log("currentDate", currentDate);
-    const startDate = new Date(currentDate);
-    startDate.setHours(0, 0, 0, 0);
-    const endDate = new Date(startDate);
-    endDate.setFullYear(endDate.getFullYear() + 1); // Look ahead 1 year to be safe
-    console.log("startDate", startDate);
-    console.log("endDate", endDate);
+// return date object
+export function getInvoiceDate(currTimestamp, recurringMonthDay, frequency = 'monthly') {
+    const {startTimestamp, endTimestamp} = getMonthRangeByTimestamp(currTimestamp);
+    const startDate = new Date(startTimestamp);
+    const endDate = new Date(endTimestamp);
+
+    console.log({currTimestamp, startTimestamp, endTimestamp, recurringMonthDay})
     let rule;
-    
     switch(frequency.toLowerCase()) {
         case 'monthly':
             rule = new RRule({
@@ -107,7 +106,8 @@ export function getNextInvoiceDate(currentDate, recurringMonthDay, frequency = '
 
     // Get all occurrences and find the first one after the current date
     const occurrences = rule.all();
+    console.log({occurrences})
     const nextPayment = occurrences.find(date => date > startDate);
-    
+    console.log({nextPayment})
     return nextPayment || null;
 }

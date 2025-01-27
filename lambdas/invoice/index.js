@@ -26,8 +26,9 @@ export const handler = async (event) => {
         if(path === '/search/invoices'){
             const query = JSON.parse(body);
             return await invoiceModel.findInSchool(query, headers);
-        }else{
-            return await invoiceModel.create(JSON.parse(body));
+        }else if(path === '/generate/invoices'){
+          const b = JSON.parse(body);
+          return await invoiceModel.generateInvoices(b.schoolId);
         }
 
       case 'PUT':

@@ -25,6 +25,12 @@ layers:
       - nodejs20.x
       - nodejs22.x
     description: "MongoDB Node.js driver for Lambda"
+  rruleLayer:
+    path: rrule-layer
+    compatibleRuntimes:
+      - nodejs18.x
+      - nodejs20.x
+      - nodejs22.x
 # package:
 #   include:
 #     - node_modules/**
@@ -157,12 +163,16 @@ functions:
     handler: lambdas/invoice/index.handler
     layers:
       - { Ref: MongodbLayerLambdaLayer }
+      - { Ref: RruleLayerLambdaLayer }
     events:
       - httpApi:
           path: /invoices
           method: get
       - httpApi:
           path: /search/invoices
+          method: post
+      - httpApi:
+          path: /generate/invoices
           method: post
   charge:
     handler: lambdas/charge/index.handler
@@ -194,6 +204,7 @@ functions:
     handler: lambdas/chargePlan/index.handler
     layers:
       - { Ref: MongodbLayerLambdaLayer }
+      - { Ref: RruleLayerLambdaLayer }
     events:
       - httpApi:
           path: /chargePlans

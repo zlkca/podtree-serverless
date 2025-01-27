@@ -24,3 +24,27 @@ export const toUrlFriendly = (name) => {
     .replace(/[^a-z0-9]+/g, '-') // Replace non-alphanumeric chars with hyphen
     .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 };
+
+export const getCurrentMonthRange = () => {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Get the start and end timestamps of the current month
+  const startTimestamp = new Date(currentYear, currentMonth, 1).getTime();
+  const endTimestamp = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999).getTime();
+
+  return {startTimestamp, endTimestamp};
+}
+
+export const getMonthRangeByTimestamp = (timestamp) => {
+  const now = new Date(timestamp);
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth();
+
+  // Get the start and end timestamps of the current month
+  const startTimestamp = new Date(currentYear, currentMonth, 1).getTime();
+  const endTimestamp = new Date(currentYear, currentMonth + 1, 0, 23, 59, 59, 999).getTime();
+
+  return {startTimestamp, endTimestamp};
+}

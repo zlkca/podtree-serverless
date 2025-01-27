@@ -1,4 +1,4 @@
-import { generateOccurrence, getNextInvoiceDate } from "../utils/scheduler.js";
+import { generateOccurrence, getInvoiceDate } from "../utils/scheduler.js";
 import BaseModel from "./base.js";
 import SchoolModel from "./school.js";
 // import SchoolModel from "./school.js";
@@ -16,7 +16,7 @@ export default class ChargePlanModel extends BaseModel {
     async createRecurringChargePlans(schoolId, students, chargeTemplates, occurrenceType, sysRecurringFrequency, sysRecurringMonthday, startTimestamp, endTimestamp) {
         const charges = [];
         const dates = generateOccurrence(sysRecurringFrequency, sysRecurringMonthday, startTimestamp, endTimestamp);
-
+        console.log('recurring occurrance dates:', dates);
         for (let j = 0; j < chargeTemplates.length; j++) {
             const item = chargeTemplates[j];
 
@@ -32,13 +32,14 @@ export default class ChargePlanModel extends BaseModel {
                     startTimestamp,
                     endTimestamp,
                 }
+                console.log('plan to create:', plan);
                 const _id = await super.create(plan);
 
                 for (let k = 0; k < dates.length; k++) {
                     const instance = {
                         ...plan,
                         chargePlanId: _id.toString(),
-                        invoiceDate: dates[k].getTime(),
+                        invoiceTimestamp: dates[k].getTime(),
                     }
 
                     charges.push(instance);
@@ -65,17 +66,16 @@ export default class ChargePlanModel extends BaseModel {
         const schoolModel = new SchoolModel(db);
         const school = await schoolModel.findById(headers.schoolid);
         const schoolId = school._id.toString();
-        const {invoicePeriod, invoiceDay, gracePeriod} = school.paymentSettings;
+        const {recurringPeriod, recurringMonthday, gracePeriod} = school.paymentSettings;
         
-        const sysRecurringFrequency = invoicePeriod ? invoicePeriod : 'monthly';
-        const sysRecurringMonthday = invoiceDay ? parseInt(invoiceDay) : 5;
+        const sysRecurringFrequency = recurringPeriod ? recurringPeriod : 'monthly';
+        const sysRecurringMonthday = recurringMonthday ? parseInt(recurringMonthday) : 5;
         // console.log({students, items, occurrenceType, sysRecurringFrequency, sysRecurringMonthday})
         
         // calc instances date
         if(occurrenceType === 'one-time'){
-            console.log('original invoice date', body.invoiceDate);
-            const invoiceDate = getNextInvoiceDate(body.invoiceDate, sysRecurringMonthday, sysRecurringFrequency);
-            console.log('system invoice date', invoiceDate);
+            console.log('one-time original charge plan invoice date', body.invoiceTimestamp);
+            const invoiceDate = getInvoiceDate(body.invoiceTimestamp, sysRecurringMonthday, sysRecurringFrequency);
             const instances = [];
             for(let i=0; i<students.length; i++){
                 const student = students[i];
@@ -88,7 +88,7 @@ export default class ChargePlanModel extends BaseModel {
                         school: {_id: schoolId},
                         chargeTemplate: item,
                         occurrenceType,
-                        invoiceDate: invoiceDate, // fix me !
+                        invoiceTimestamp: new Date(invoiceDate).getTime(), // fix me !
                     }
                     const _id = await super.create(plan);
                     instances.push({chargePlanId: _id.toString(), ...plan}); // need new invoice date
@@ -97,6 +97,7 @@ export default class ChargePlanModel extends BaseModel {
             // console.log({instances});
             return instances;
         }else{
+            console.log('recurring original charge plan:', body);
             const {startTimestamp, endTimestamp} = body;
             const instances = await this.createRecurringChargePlans(schoolId, students, items, occurrenceType, sysRecurringFrequency, sysRecurringMonthday, startTimestamp, endTimestamp);
             return instances;
@@ -127,7 +128,7 @@ export default class ChargePlanModel extends BaseModel {
     //                 const instance = {
     //                     ...plan,
     //                     chargePlanId: _id,
-    //                     invoiceDate: dates[k].getTime(),
+    //                     invoiceTimestamp: dates[k].getTime(),
     //                 }
 
     //                 charges.push(instance);
