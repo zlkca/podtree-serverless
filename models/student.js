@@ -82,7 +82,7 @@ export default class StudentModel extends BaseModel {
 //                 if(contact.id){
 //                     let parent = null;
 //                     if(ObjectId.isValid(contact.id)){
-//                         const _id = new ObjectId(contact.id);
+//                         const _id = ObjectId.createFromHexString(contact.id);
 //                         parent = await parentModel.findOne({_id});
 //                     }
                     
@@ -104,7 +104,7 @@ export default class StudentModel extends BaseModel {
 //                     }
 //                 }
 //             }
-//             // const ps = await parentModel.find({ _id: {$in: body.parents.map(pid => new ObjectId(pid))}});
+//             // const ps = await parentModel.find({ _id: {$in: body.parents.map(pid => ObjectId.createFromHexString(pid))}});
 //             // body.parents = ps.map(p => ({_id: p._id.toString(), firstName: p.firstName, lastName: p.lastName}));
 //             // const pp = ps[0]; // fix me !!! ps.find(p => p.primary)[0];
 //             // body.primaryParent = {_id: pp._id.toString(), firstName: pp.firstName, lastName: pp.lastName, stripeCustomerId: pp.stripeCustomerId};
@@ -130,7 +130,7 @@ export default class StudentModel extends BaseModel {
 //             if(contact.id){
 //                 let parent = null;
 //                 if(ObjectId.isValid(contact.id)){
-//                     const _id = new ObjectId(contact.id);
+//                     const _id = ObjectId.createFromHexString(contact.id);
 //                     parent = await parentModel.findOne({_id});
 //                 }
                 
@@ -152,7 +152,7 @@ export default class StudentModel extends BaseModel {
 //                 }
 //             }
 //         }
-//         // const ps = await parentModel.find({ _id: {$in: body.parents.map(pid => new ObjectId(pid))}});
+//         // const ps = await parentModel.find({ _id: {$in: body.parents.map(pid => ObjectId.createFromHexString(pid))}});
 //         // body.parents = ps.map(p => ({_id: p._id.toString(), firstName: p.firstName, lastName: p.lastName}));
 //         // const pp = ps[0]; // fix me !!! ps.find(p => p.primary)[0];
 //         // body.primaryParent = {_id: pp._id.toString(), firstName: pp.firstName, lastName: pp.lastName, stripeCustomerId: pp.stripeCustomerId};

@@ -170,7 +170,7 @@ export async function bulkUpdate(model, items) {
           updates.push({
             updateOne: {
               ...it.updateOne,
-              filter: { _id: new ObjectId(it.updateOne.filter._id) },
+              filter: { _id: ObjectId.createFromHexString(it.updateOne.filter._id) },
               update: { $set: it.updateOne.update },
             },
           });
@@ -189,6 +189,27 @@ export async function bulkUpdate(model, items) {
   }
 }
 
+// eg. updateMany(
+//   { _id: { $in: chargeIds } },
+//   { $set: { status: newStatus } }
+// ); 
+export async function updateMany(model, query, doc) {
+  const dbClient = model.dbClient;
+  const name = model.name;
+
+  try {
+    const db = await connect(dbClient);
+    if (db) {
+      const collection = db.collection(name);
+      const data = await collection.updateMany(query, doc);
+      return { data, error: null };
+    } else {
+      return { data: null, error: "Nonsql lost connection" };
+    }
+  } catch (error) {
+    return { data: null, error };
+  }
+}
 
 export async function deleteOne(model, id) {
   const dbClient = model.dbClient;
@@ -198,7 +219,7 @@ export async function deleteOne(model, id) {
     const db = await connect(dbClient);
     if (db) {
       const collection = db.collection(name);
-      const query = { _id: new ObjectId(id) };
+      const query = { _id: ObjectId.createFromHexString(id) };
       const data = await collection.deleteOne(query);
       return { data, error: null };
     } else {

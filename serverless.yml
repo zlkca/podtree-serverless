@@ -31,6 +31,18 @@ layers:
       - nodejs18.x
       - nodejs20.x
       - nodejs22.x
+  pdfLayer:
+    path: pdf-layer
+    compatibleRuntimes:
+      - nodejs18.x
+      - nodejs20.x
+      - nodejs22.x
+  emailLayer:
+    path: email-layer
+    compatibleRuntimes:
+      - nodejs18.x
+      - nodejs20.x
+      - nodejs22.x
 # package:
 #   include:
 #     - node_modules/**
@@ -164,6 +176,8 @@ functions:
     layers:
       - { Ref: MongodbLayerLambdaLayer }
       - { Ref: RruleLayerLambdaLayer }
+      - { Ref: PdfLayerLambdaLayer }
+      - { Ref: EmailLayerLambdaLayer }
     events:
       - httpApi:
           path: /invoices
@@ -249,3 +263,14 @@ functions:
       - httpApi:
           path: /schools/{id}
           method: put
+  upload:
+    handler: lambdas/upload/signedUrl.handler
+    layers:
+      - { Ref: MongodbLayerLambdaLayer }
+    events:
+      - httpApi:
+          path: /signedUrls
+          method: post
+      - httpApi:
+          path: /getSignedUrl
+          method: post

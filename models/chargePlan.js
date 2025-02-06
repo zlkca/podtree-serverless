@@ -1,7 +1,7 @@
 import { generateOccurrence, getInvoiceDate } from "../utils/scheduler.js";
 import BaseModel from "./base.js";
 import SchoolModel from "./school.js";
-// import SchoolModel from "./school.js";
+import {ChargeStatus} from "../const.js";
 
 export default class ChargePlanModel extends BaseModel {
     constructor(db) {
@@ -23,9 +23,19 @@ export default class ChargePlanModel extends BaseModel {
             for (let i = 0; i < students.length; i++) {
                 const student = students[i];
                 const contact = student.payingContact;
+                const payingContact = contact ? { 
+                    _id: contact._id, 
+                    firstName: contact.firstName, 
+                    lastName: contact.lastName,
+                    email: contact.email,
+                    phone: contact.phone,
+                    stripeCustomerId: contact.stripeCustomerId 
+                } 
+                : 
+                null;
                 const plan = {
                     student: { _id: student._id, firstName: student.firstName, lastName: student.lastName },
-                    payingContact: contact ? { _id: contact._id, firstName: contact.firstName, lastName: contact.lastName, stripeCustomerId: contact.stripeCustomerId } : null,
+                    payingContact,
                     school: {_id: schoolId},
                     chargeTemplate: item, // possibly no id ??
                     occurrenceType,
@@ -40,6 +50,7 @@ export default class ChargePlanModel extends BaseModel {
                         ...plan,
                         chargePlanId: _id.toString(),
                         invoiceTimestamp: dates[k].getTime(),
+                        status: ChargeStatus.NEW,
                     }
 
                     charges.push(instance);
@@ -53,13 +64,12 @@ export default class ChargePlanModel extends BaseModel {
         const {students, chargeTemplates, occurrenceType } = body;
         const items = [];
 
-        // format templates
         for(let i=0; i<chargeTemplates.length; i++){
             const chargeTemplate = chargeTemplates[i];
             if(chargeTemplate._id){
                 items.push({...chargeTemplate, inLibrary: true});
             }else{
-                items.push({...chargeTemplate, _id: new ObjectId().toString(), inLibrary: false});
+                items.push({...chargeTemplate, _id: ObjectId.createFromHexString().toString(), inLibrary: false});
             }
         }
         
@@ -70,8 +80,7 @@ export default class ChargePlanModel extends BaseModel {
         
         const sysRecurringFrequency = recurringPeriod ? recurringPeriod : 'monthly';
         const sysRecurringMonthday = recurringMonthday ? parseInt(recurringMonthday) : 5;
-        // console.log({students, items, occurrenceType, sysRecurringFrequency, sysRecurringMonthday})
-        
+
         // calc instances date
         if(occurrenceType === 'one-time'){
             console.log('one-time original charge plan invoice date', body.invoiceTimestamp);
@@ -82,16 +91,24 @@ export default class ChargePlanModel extends BaseModel {
                 for(let j=0; j<items.length; j++){
                     const item = items[j];
                     const contact = student.payingContact;
+                    const payingContact = contact ? { 
+                        _id: contact._id, 
+                        firstName: contact.firstName, 
+                        lastName: contact.lastName,
+                        email: contact.email,
+                        phone: contact.phone,
+                        stripeCustomerId: contact.stripeCustomerId 
+                    } : null;
                     const plan = {
                         student: {_id: student._id, firstName: student.firstName, lastName: student.lastName},
-                        payingContact: contact ? contact : null,
+                        payingContact,
                         school: {_id: schoolId},
                         chargeTemplate: item,
                         occurrenceType,
                         invoiceTimestamp: new Date(invoiceDate).getTime(), // fix me !
                     }
                     const _id = await super.create(plan);
-                    instances.push({chargePlanId: _id.toString(), ...plan}); // need new invoice date
+                    instances.push({chargePlanId: _id.toString(), ...plan, status: ChargeStatus.NEW}); // need new invoice date
                 }
             }
             // console.log({instances});
@@ -102,39 +119,5 @@ export default class ChargePlanModel extends BaseModel {
             const instances = await this.createRecurringChargePlans(schoolId, students, items, occurrenceType, sysRecurringFrequency, sysRecurringMonthday, startTimestamp, endTimestamp);
             return instances;
         }
-
     }
-    // async createRecurringChargePlansV2(students, chargeTemplates, occurrenceType, startTimestamp, endTimestamp){
-    //     const {startTimestamp, endTimestamp} = body;
-    //     const charges = [];
-    //     for(let j=0; j<chargeTemplates.length; j++){
-    //         const item = chargeTemplates[j];
-    //         const dates = generateOccurrence(item.frequency, item.recurringMonthday, startTimestamp, endTimestamp);
-    //         for(let i=0; i<students.length; i++){
-    //             const student = students[i];
-    //             const contact = student.payingContact;
-    //             const plan = {
-    //                 student: {_id: student._id, firstName: student.firstName, lastName: student.lastName},
-    //                 payingContact: contact ? {_id: contact._id, firstName: contact.firstName, lastName: contact.lastName, stripeCustomerId: contact.stripeCustomerId} : null,
-    //                 school: student.school,
-    //                 chargeTemplate: item, // possibly no id ??
-    //                 occurrenceType,
-    //                 startTimestamp,
-    //                 endTimestamp,
-    //             }
-    //             const _id = await super.create(plan);
-
-    //             for(let k=0; k<dates.length; k++){
-    //                 const instance = {
-    //                     ...plan,
-    //                     chargePlanId: _id,
-    //                     invoiceTimestamp: dates[k].getTime(),
-    //                 }
-
-    //                 charges.push(instance);
-    //             }
-    //         }
-    //     }
-    //     return charges;
-    // }
 }

@@ -26,7 +26,7 @@ export default class BaseModel {
 
   async findById(id) {
     try {
-      const item = await this.collection.findOne({ _id: new ObjectId(id) });
+      const item = await this.collection.findOne({ _id: ObjectId.createFromHexString(id) });
       if (item && item._id) {
         const data = {...item, _id: item._id.toString()};
         return data;
@@ -95,7 +95,7 @@ export default class BaseModel {
   async updateById(id, updateData) {
     try {
       const result = await this.collection.updateOne(
-        { _id: new ObjectId(id) },
+        { _id: ObjectId.createFromHexString(id) },
         { 
           $set: { ...updateData, updatedAt: new Date().getTime() }
         },
@@ -110,7 +110,7 @@ export default class BaseModel {
 
   async deleteById(id) {
     try {
-      const result = await this.collection.deleteOne({ _id: new ObjectId(id) });
+      const result = await this.collection.deleteOne({ _id: ObjectId.createFromHexString(id) });
       return result.deletedCount;
     } catch (error) {
       console.error(`Error deleting ${this.collectionName}:`, error);
@@ -124,6 +124,21 @@ export default class BaseModel {
       return result.insertedIds;
     } catch (error) {
       console.error(`Error inserting many ${this.collectionName}:`, error);
+      throw error;
+    }
+  }
+
+  async updateMany(query, updateData) {
+    try {
+      const result = await this.collection.updateMany(
+        query,
+        { $set: { ...updateData, updatedAt: new Date().getTime() } }
+      );
+      console.log('updateMany result:', result);
+      return result.modifiedCount;
+    } catch (error) {
+      console.log('updateMany error:', error);
+      console.error(`Error updating many ${this.collectionName}:`, error);
       throw error;
     }
   }

@@ -40,7 +40,7 @@ describe('BaseModel - findInSchool', () => {
       const headers = { schoolid: '507f1f77bcf86cd799439011' };
       const mockData = [
         { 
-          _id: new ObjectId('507f1f77bcf86cd799439011'),
+          _id: ObjectId.createFromHexString('507f1f77bcf86cd799439011'),
           name: 'Test Item',
           status: 'active',
           school: { _id: headers.schoolid }
@@ -100,7 +100,7 @@ describe('BaseModel - findInSchool', () => {
       const options = { sort: { createdAt: -1 } };
       const mockData = [
         { 
-          _id: new ObjectId('507f1f77bcf86cd799439011'),
+          _id: ObjectId.createFromHexString('507f1f77bcf86cd799439011'),
           name: 'Test Item',
           status: 'active',
           school: { _id: headers.schoolid }
